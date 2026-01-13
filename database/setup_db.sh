@@ -98,7 +98,7 @@ if [ -f "$FINAL_OSM_FILE" ]; then
     echo -e "${YELLOW}   Rozpoczynam import osm2pgrouting...${NC}"
     # Dodano flagę --clean aby usunąć stare dane przed importem
     docker exec "$CONTAINER_NAME" osm2pgrouting \
-        -f /tmp/data.osm \
+        -f //tmp/data.osm \
         -h localhost \
         -p 5432 \
         -d "$DB_NAME" \
@@ -111,7 +111,7 @@ else
 fi
 
 # --- 5. SQL ---
-echo -e "${CYAN}4. Wgrywanie skryptów SQL...${NC}"
+echo -e "${CYAN}5. Wgrywanie skryptów SQL...${NC}"
 
 if [ -d "$SQL_FOLDER" ]; then
     # Iteracja po tablicy zdefiniowanej na górze skryptu
