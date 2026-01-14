@@ -9,6 +9,7 @@ SQL_FOLDER="./sql"
 SQL_FILES=(
     "get_nearest_node.sql"
     "find_best_route_astar.sql"
+    "sql/find_best_route_dijkstra.sql"
 )
 
 # Link do danych (Mazowieckie, format bz2 - skompresowany XML)
