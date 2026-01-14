@@ -18,11 +18,7 @@ class RouteView(APIView):
         end_lat   (float) : Szerokość geograficzna punktu końcowego (wymagane).
         end_lon   (float) : Długość geograficzna punktu końcowego (wymagane).
 
-        vehicle   (str)   : Typ pojazdu, wpływający na maksymalną prędkość (opcjonalne).
-                            Dostępne wartości:
-                            - 'car'  (domyślnie, max 140 km/h)
-                            - 'bike' (max 20 km/h)
-                            - 'foot' (max 5 km/h)
+        vehicle_speed (float)  : Maksymalna prędkość pojazdu w km/h (np. 50, 90, 140). Domyślnie 140.
 
         algorithm (str)   : Algorytm użyty do szukania ścieżki (opcjonalne).
                             Dostępne wartości:
@@ -30,7 +26,8 @@ class RouteView(APIView):
                             - 'dijkstra' (algorytm Dijkstry - do porównań)
 
         Przykład użycia:
-        GET /api/get_path/?start_lat=52.23&start_lon=21.01&end_lat=52.16&end_lon=21.08&vehicle=bike&algorithm=astar
+        GET /api/get_path/?start_lat=52.231&start_lon=21.006&end_lat=52.164&end_lon=21.084&vehicle_speed=140&algorithm=astar
+
         """
         # 1. Walidacja i pobranie parametrów
         try:
@@ -38,7 +35,12 @@ class RouteView(APIView):
             start_lon = float(request.query_params.get("start_lon"))
             end_lat = float(request.query_params.get("end_lat"))
             end_lon = float(request.query_params.get("end_lon"))
-            vehicle_type = request.query_params.get("vehicle", "car")
+            max_speed = float(request.query_params.get("vehicle_speed", 140.0))
+            if max_speed <= 0:
+                return Response(
+                    {"error": "Prędkość musi być większa od 0"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
             alg_type = request.query_params.get("algorithm", "astar")
         except (TypeError, ValueError):
             return Response(
@@ -50,17 +52,13 @@ class RouteView(APIView):
 
         func_start_time = time.perf_counter()
 
-        # 2. Mapowanie pojazdu na prędkość
-        vehicle_speeds = {"car": 140.0, "bike": 20.0, "foot": 5.0}
-        max_speed = vehicle_speeds.get(vehicle_type, 140.0)
-
-        # 3. Wybór funkcji SQL na podstawie parametru
+        # 2. Wybór funkcji SQL na podstawie parametru
         if alg_type == "dijkstra":
             function_name = "find_best_route_dijkstra"
         else:
             function_name = "find_best_route_astar"
 
-        # 4. Zapytanie SQL
+        # 3. Zapytanie SQL
         # Wywołujemy funkcję stworzoną w bazie. Używamy ST_AsGeoJSON, aby PostGIS
         # od razu zwrócił nam geometrię w formacie JSON (tekstowym).
         sql_query = f"""
@@ -93,7 +91,7 @@ class RouteView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        # 5. Budowanie GeoJSON
+        # 4. Budowanie GeoJSON
         features = []
         total_time = 0.0
         total_dist = 0.0
@@ -124,8 +122,7 @@ class RouteView(APIView):
             "metadata": {
                 "total_time_seconds": total_time,
                 "total_distance_meters": total_dist,
-                "vehicle": vehicle_type,
-                "max_speed_kmh": max_speed,
+                "vehicle_speed": max_speed,
                 "algorithm": alg_type,
                 "algorithm_duration": round(execution_time, 4),
                 "function_duration": round(func_execution_time, 4),
