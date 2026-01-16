@@ -1,5 +1,26 @@
 # React + Vite
 
+# Requirements
+
+- [] Node.js v24.13.0+
+
+```
+    sudo apt-get install -y curl
+    curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
+    sudo apt-get install -y nodejs
+    node -v
+```
+
+- [] Yarn v1.22.22+
+```
+    sudo npm install -g yarn
+```
+
+- [] Docker v29.1.x+
+- [] Docker Compose v5.0.x+
+
+(Instruction for Docker / Docker Compose installation: https://docs.docker.com/engine/install/debian/#install-using-the-repository)
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:
