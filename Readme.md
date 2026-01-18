@@ -27,6 +27,9 @@ DATABASE:
 ```cd database```
 ```docker-compose start```
 
+aby zaktualizować nowe wersje funkcji należy uruchomić skrypt
+```./update_sql.sh```
+
 BACKEND:
 ```cd backend```
 ```.\venv\Scripts\Activate```
