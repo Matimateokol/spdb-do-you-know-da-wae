@@ -36,13 +36,13 @@ BEGIN
         reverse_cost_sql := 'length_m::float';
 
     ELSIF criteria = 'main_roads' THEN
-        -- Jeśli droga ma maxspeed <= 30, zwiększamy jej koszt 2-krotnie
+        -- Jeśli droga ma maxspeed <= 30, zwiększamy jej koszt 5-krotnie
         cost_sql := format('
-            (length_m / (LEAST(COALESCE(maxspeed_forward, 50), %s) / 3.6))::float * (CASE WHEN COALESCE(maxspeed_forward, 50) <= 30 THEN 2.0 ELSE 1.0 END)', 
+            (length_m / (LEAST(COALESCE(maxspeed_forward, 50), %s) / 3.6))::float * (CASE WHEN COALESCE(maxspeed_forward, 50) <= 30 THEN 5.0 ELSE 1.0 END)', 
             vehicle_max_speed_kmh);
             
         reverse_cost_sql := format('
-            (length_m / (LEAST(COALESCE(maxspeed_backward, 50), %s) / 3.6))::float * (CASE WHEN COALESCE(maxspeed_backward, 50) <= 30 THEN 2.0 ELSE 1.0 END)', 
+            (length_m / (LEAST(COALESCE(maxspeed_backward, 50), %s) / 3.6))::float * (CASE WHEN COALESCE(maxspeed_backward, 50) <= 30 THEN 5.0 ELSE 1.0 END)', 
             vehicle_max_speed_kmh);
 
     ELSE
