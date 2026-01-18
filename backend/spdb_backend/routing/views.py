@@ -140,3 +140,74 @@ class RouteView(APIView):
             )
 
         return Response(response_data)
+
+
+class StreetView(APIView):
+    def get(self, request):
+        """
+        Obsługuje żądanie wyznaczenia punktu na podstawie nazwy ulicy.
+
+        Parametry w URL (Query Params):
+        -------------------------------
+        street_name (str) : Nazwa ulicy
+
+        Przykład użycia:
+        GET /api/get_street/?street_name=Puławska
+
+        """
+        street_name = request.query_params.get("street_name")
+
+        if not street_name:
+            return Response(
+                {"error": "Parametr 'street_name' jest wymagany"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT lat, lon FROM find_street_center(%s)", [street_name])
+            row = cursor.fetchone()
+
+            # Jeśli ulica nie istnieje, PostGIS zwróci NULL, co w Pythonie da (None, None)
+            if row is None or row[0] is None:
+                return Response(
+                    {"error": f"Nie znaleziono ulicy o nazwie: {street_name}"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            return Response({"street": street_name, "lat": row[0], "lon": row[1]})
+
+
+class BoundariesView(APIView):
+    def get(self, request):
+        """
+        Obsługuje żądanie wyznaczenia granic mapy w bazie danych.
+
+        Parametry w URL (Query Params):
+        -------------------------------
+        brak
+
+        Przykład użycia:
+        GET /api/get_boundaries/
+
+        """
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT min_lat, min_lon, max_lat, max_lon FROM get_map_boundaries()"
+            )
+            row = cursor.fetchone()
+
+            if row is None or row[0] is None:
+                return Response(
+                    {"error": "Baza danych jest pusta"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            return Response(
+                {
+                    "min_lat": row[0],
+                    "min_lon": row[1],
+                    "max_lat": row[2],
+                    "max_lon": row[3],
+                    "bounds": [[row[0], row[1]], [row[2], row[3]]],
+                }
+            )
