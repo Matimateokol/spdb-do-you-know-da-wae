@@ -53,6 +53,8 @@ else
         fi
     elif [[ "$DOWNLOADED_ARCHIVE" == *.zip ]]; then
         unzip "$DOWNLOADED_ARCHIVE"
+    elif [[ "$DOWNLOADED_ARCHIVE" == *.xz ]]; then
+        xz -d "$DOWNLOADED_ARCHIVE"
     fi
 
     # 3. Zmiana nazwy (Geofabrik wypakuje się jako mazowieckie-latest.osm)
@@ -65,8 +67,14 @@ fi
 
 # --- 1. START DOCKERA ---
 echo -e "${CYAN}1. Restartowanie kontenerów...${NC}"
-docker-compose down
-docker-compose up -d
+
+### Komendy dla starszej wersji docker compose ###
+# docker-compose down
+# docker-compose up -d
+
+### Komendy dla nowszej wersji docker compose ###
+docker compose down
+docker compose up -d
 
 echo -n "   Czekanie na start bazy danych..."
 MAX_RETRIES=30
