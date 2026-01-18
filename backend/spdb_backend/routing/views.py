@@ -69,65 +69,74 @@ class RouteView(APIView):
                 length_m, 
                 agg_length_m,
                 ST_AsGeoJSON(geom) as geom_json
-            FROM {function_name}(%s, %s, %s, %s, %s)
+            FROM {function_name}(%s, %s, %s, %s, %s, %s)
         """
 
-        params = [start_lon, start_lat, end_lon, end_lat, max_speed]
+        response_data = []
 
-        rows = []
-        start_time = time.perf_counter()
-        with connection.cursor() as cursor:
-            cursor.execute(sql_query, params)
-            # Pobieramy nazwy kolumn i tworzymy listę słowników
-            columns = [col[0] for col in cursor.description]
-            rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
+        # 4. Wywołanie funkcji dla trzech kryteriów wyszukiwania trasy
+        criterions = ["time", "distance", "main_roads"]
+        for criterion in criterions:
 
-        end_time = time.perf_counter()
-        execution_time = end_time - start_time
+            params = [start_lon, start_lat, end_lon, end_lat, max_speed, criterion]
 
-        if not rows:
-            return Response(
-                {"error": "Nie znaleziono trasy między podanymi punktami."},
-                status=status.HTTP_404_NOT_FOUND,
-            )
+            rows = []
+            start_time = time.perf_counter()
+            with connection.cursor() as cursor:
+                cursor.execute(sql_query, params)
+                # Pobieramy nazwy kolumn i tworzymy listę słowników
+                columns = [col[0] for col in cursor.description]
+                rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
 
-        # 4. Budowanie GeoJSON
-        features = []
-        total_time = 0.0
-        total_dist = 0.0
+            end_time = time.perf_counter()
+            execution_time = end_time - start_time
 
-        for row in rows:
-            # Pomijamy wiersze bez geometrii (jeśli jakieś są)
-            if row["geom_json"]:
-                features.append(
-                    {
-                        "type": "Feature",
-                        "geometry": json.loads(row["geom_json"]),
-                        "properties": {
-                            "seq": row["seq"],
-                            "cost_s": row["cost_s"],
-                            "length_m": row["length_m"],
-                        },
-                    }
+            if not rows:
+                return Response(
+                    {"error": "Nie znaleziono trasy między podanymi punktami."},
+                    status=status.HTTP_404_NOT_FOUND,
                 )
-                # Ostatni wiersz będzie miał sumę całkowitą
-                total_time = row["agg_cost_s"]
-                total_dist = row["agg_length_m"]
 
-        func_end_time = time.perf_counter()
-        func_execution_time = func_end_time - func_start_time
+            # Budowanie GeoJSON
+            features = []
+            total_time = 0.0
+            total_dist = 0.0
 
-        response_data = {
-            "type": "FeatureCollection",
-            "metadata": {
-                "total_time_seconds": total_time,
-                "total_distance_meters": total_dist,
-                "vehicle_speed": max_speed,
-                "algorithm": alg_type,
-                "algorithm_duration": round(execution_time, 4),
-                "function_duration": round(func_execution_time, 4),
-            },
-            "features": features,
-        }
+            for row in rows:
+                # Pomijamy wiersze bez geometrii
+                if row["geom_json"]:
+                    features.append(
+                        {
+                            "type": "Feature",
+                            "geometry": json.loads(row["geom_json"]),
+                            "properties": {
+                                "seq": row["seq"],
+                                "cost_s": row["cost_s"],
+                                "length_m": row["length_m"],
+                            },
+                        }
+                    )
+                    # Ostatni wiersz będzie miał sumę całkowitą
+                    total_time = row["agg_cost_s"]
+                    total_dist = row["agg_length_m"]
+
+            func_end_time = time.perf_counter()
+            func_execution_time = func_end_time - func_start_time
+
+            response_data.append(
+                {
+                    "type": "FeatureCollection",
+                    "metadata": {
+                        "total_time_seconds": total_time,
+                        "total_distance_meters": total_dist,
+                        "vehicle_speed": max_speed,
+                        "algorithm": alg_type,
+                        "criterion": criterion,
+                        "algorithm_duration": round(execution_time, 4),
+                        "function_duration": round(func_execution_time, 4),
+                    },
+                    "features": features,
+                }
+            )
 
         return Response(response_data)
