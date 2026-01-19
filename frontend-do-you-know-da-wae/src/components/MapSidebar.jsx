@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import './MapSidebar.css';
 import axios from "axios";
 
-const MapSidebar = ({ newStartPosition, newEndPosition, onStartPositionChange, onEndPositionChange, onRouteCalculated }) => {
+const MapSidebar = ({ newStartPosition, newEndPosition, onStartPositionChange, onEndPositionChange, onRouteCalculated, onBoundingBoxCalculated }) => {
   const [start, setStart] = useState('');
   const [end, setEnd] = useState('');
   const [activeTransportMode, setActiveTransportMode] = useState("car");
@@ -33,6 +33,21 @@ const MapSidebar = ({ newStartPosition, newEndPosition, onStartPositionChange, o
     },
   };
 
+  const boundingBoxToGeoJSON = ({ min_lat, min_lon, max_lat, max_lon }) => ({
+    type: "Feature",
+    properties: {},
+    geometry: {
+        type: "Polygon",
+        coordinates: [[
+        [min_lon, min_lat], // bottom-left
+        [max_lon, min_lat], // bottom-right
+        [max_lon, max_lat], // top-right
+        [min_lon, max_lat], // top-left
+        [min_lon, min_lat]  // close polygon
+        ]]
+    }
+  });
+
   const handleSpeedChange = (e) => {
     setMaxSpeed(e.target.value);
     if (e.target.value > transports[activeTransportMode].maxSpeed) {
@@ -57,6 +72,26 @@ const MapSidebar = ({ newStartPosition, newEndPosition, onStartPositionChange, o
     setMaxSpeed(transports[transport].maxSpeed)
   };
 
+  const handleGetBoundariesRequest = async (e) => {
+    e.preventDefault();
+
+    try {
+        axios({
+            method: 'get',
+            url: `${baseUrl}/api/get_boundaries/`,
+            responseType: 'json',
+        }).then((response) => {
+            console.log("Bounding Box request. Oto dane z odp:");
+            console.log(response.data);
+            const bboxGeoJson = boundingBoxToGeoJSON(response.data);
+            onBoundingBoxCalculated(bboxGeoJson);
+        })
+    } catch (err) {
+        console.error("Fetch error:", err);
+    }
+
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     //if (!start || !end) return;
@@ -70,36 +105,9 @@ const MapSidebar = ({ newStartPosition, newEndPosition, onStartPositionChange, o
         algorithm: e.target.algorithmField.value
     }
 
-    // const mockValues = {
-    //     start_lat: 52.231,
-    //     start_lon: 21.006,
-    //     end_lat: 52.164,
-    //     end_lon: 21.084,
-    //     vehicle_speed: 140,
-    //     algorithm: 'astar'
-    // };
-
-    // try {
-
-    //   const response = await fetch(`{${baseUrl}/api/get_path/?start_lat=${mockValues.start_lat}&start_lon=${mockValues.start_lon}&end_lat=${mockValues.end_lat}&end_lon=${mockValues.end_lon}&vehicle_speed=${mockValues.vehicle_speed}&algorithm=${mockValues.algorithm}`);
-    //   const data = await response.json();
-    //   console.log(data);
-    //   onRouteFound(data); // Send GeoJSON to your map component
-    // } catch (err) {
-    //   console.error("Fetch error:", err);
-    // }
-
     try {
         axios({
             method: 'get',
-            // params: {
-            //     "start_lat": 52.231,
-            //     "start_lon": 21.006,
-            //     "end_lat": 52.164,
-            //     "end_lon": 21.084,
-            //     "vehicle_speed": 140,
-            //     "algorithm": "astar"
-            // },
             params: {
                 "start_lat": formData.start_lat,
                 "start_lon": formData.start_lon,
@@ -133,6 +141,7 @@ const MapSidebar = ({ newStartPosition, newEndPosition, onStartPositionChange, o
       </div>
 
       <form onSubmit={handleSubmit} style={styles.form}>
+        <p>Wyznaczanie trasy</p>
         <div>
             <span className='fieldDescriber'>Prędkość maksymalna (km/h):</span>
             <input id="maxSpeedField" name="maxSpeedField" style={styles.input}
@@ -240,6 +249,14 @@ const MapSidebar = ({ newStartPosition, newEndPosition, onStartPositionChange, o
       </form>
       
       <div style={styles.divider}></div>
+      <div>
+        <p>Narzędzia do debugowania</p>
+        <form onSubmit={handleGetBoundariesRequest}>
+            <button className='submitBtn' type="submit">
+                Pokaż obszar ograniczający
+            </button>
+        </form>
+      </div>
     </div>
   );
 };
@@ -248,7 +265,7 @@ const MapSidebar = ({ newStartPosition, newEndPosition, onStartPositionChange, o
 const styles = {
   sidebar: {
     width: '320px',
-    height: '100vh',
+    height: '100%',
     backgroundColor: '#fff',
     boxShadow: '2px 0 5px rgba(0,0,0,0.1)',
     display: 'flex',

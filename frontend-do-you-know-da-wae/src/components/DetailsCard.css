@@ -1,0 +1,47 @@
+.cardHeader {
+    display: flex;
+}
+
+.header {
+    margin: 0;
+    color:gray;
+}
+
+.cardGridContainer {
+    display: 'grid';
+    grid-template-rows: auto auto auto auto auto;
+    justify-content: 'left';
+    align-items: 'left';
+    word-wrap: 'break-word';
+    padding: '15px';
+    max-width: '100%';
+}
+
+.cardGridRow {
+    text-align: left;
+    padding-left: 15px;
+}
+
+.card3GridRow {
+    display: grid;
+    grid-template-columns: auto auto auto;
+    align-items: 'start';
+}
+
+.gridCell {
+    align-self: 'start';
+}
+
+p {
+    font-weight: bold;
+    margin: 12px;
+}
+
+label {
+    align-self: center;
+}
+
+#opacityCheckbox {
+    display: flex;
+    color: white;
+}

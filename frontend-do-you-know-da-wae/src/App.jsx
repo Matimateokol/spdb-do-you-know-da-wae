@@ -1,23 +1,38 @@
 import { useState } from 'react'
 import './App.css'
 
-import {Map, Marker, Popup, Source, Layer} from '@vis.gl/react-maplibre'
+import {Marker, Source, Layer} from '@vis.gl/react-maplibre'
 import 'maplibre-gl/dist/maplibre-gl.css'
 
 import MapSidebar from './components/MapSidebar'
 import NavMap from './NavMap/NavMap'
-import exampleGEOJSON from './assets/exampleGEOJSON.json';
+import AdditionalInfoPanel from './components/AdditionalInfoPanel'
+import DetailsCard from './components/DetailsCard'
 
 function App() {
   const styles = {divider: { height: '8px', backgroundColor: '#f0f0f0', width: '100%' }}
 
   const [newStartPosition, setNewStartPosition] = useState({lat: '', long: ''});
   const [newEndPosition, setNewEndPosition] = useState({lat: '', long: ''});
-  const [routeData, setRouteData] = useState({});
+  const [routeData, setRouteData] = useState([{}, {}, {}]);
+  const [routeHidden, setRouteHidden] = useState([false, false, false]);
+  const [boundingBox, setBoundingBox] = useState('');
+
+  const handleChangeRouteVisibility = (e) => {
+    const index = Number(e.target.dataset.index);
+    const checked = e.target.checked;
+    
+    setRouteHidden(prev => prev.map((value, i) => (i === index ? checked : value)));
+  };
 
   const handleRouteReceived = (data) => {
     setRouteData(data);
     console.log(`Data received and route set: ${data}`);
+  }
+
+  const handleBoundingBoxReceived = (data) => {
+    setBoundingBox(data);
+    console.log(`Bounding box set: ${data}`);
   }
 
   const handleAddStartClick = (e) => {
@@ -94,7 +109,7 @@ function App() {
 
   return (
     <>
-    <div style={{ display: 'grid', gridTemplateColumns: '320px auto 25%', backgroundColor: 'dodgerblue'}}>
+    <div style={{ display: 'grid', gridTemplateColumns: '320px auto 25%', minHeight: '100vh', backgroundColor: 'dodgerblue'}}>
       <div>
         <MapSidebar
           newStartPosition={newStartPosition}
@@ -102,6 +117,7 @@ function App() {
           onStartPositionChange={handleStartPositionChange}
           onEndPositionChange={handleEndPositionChange}
           onRouteCalculated={handleRouteReceived}
+          onBoundingBoxCalculated={handleBoundingBoxReceived}
         />
       </div>
         <NavMap 
@@ -129,27 +145,101 @@ function App() {
           }
           <Source 
             type='geojson'
-            data={routeData}
-            id='someRoute'
+            data={routeData[0]}
+            id='someRoute1'
+          />
+          <Source 
+            type='geojson'
+            data={routeData[1]}
+            id='someRoute2'
+          />
+          <Source 
+            type='geojson'
+            data={routeData[2]}
+            id='someRoute3'
           />
           <Layer
-            id='routeLine'
+            id='routeLine1'
             type='line'
-            lineOpacity={0}
-            source='someRoute'
+            source='someRoute1'
             paint={{
               "line-color":'#ff0000',
-              "line-width":4,
-              "line-opacity":1
+              "line-width":8,
+              "line-opacity": !routeHidden[0] ? 1 : 0
             }}
           />
+          <Layer
+            id='routeLine2'
+            type='line'
+            source='someRoute2'
+            paint={{
+              "line-color":'green',
+              "line-width":5,
+              "line-opacity": !routeHidden[1] ? 1 : 0
+            }}
+          />
+          <Layer
+            id='routeLine3'
+            type='line'
+            source='someRoute3'
+            paint={{
+              "line-color":'blue',
+              "line-width":3,
+              "line-opacity": !routeHidden[2] ? 1 : 0
+            }}
+          />
+          <Source 
+            type='geojson'
+            data={boundingBox}
+            id='boundingBox'
+          />
+          {
+            boundingBox &&
+            <Layer 
+              id='boundingBoxArea'
+              type='fill'
+              source='boundingBox'
+              paint={{
+              "fill-color":'pink',
+              "fill-outline-color": 'red',
+              "fill-opacity": 0.5
+            }}
+            />
+          }
         </NavMap>
-      <div style={{backgroundColor: '#fff'}}>
-        <span style={{color: 'black'}}>
-          Informacje dodatkowe
-        </span>
-        <div style={styles.divider}></div>
-      </div>
+        <AdditionalInfoPanel>
+          <div style={styles.divider} />
+          { routeData[0].metadata && <>
+              <DetailsCard 
+                routeMetadata={routeData[0].metadata} 
+                routeNumber={1} 
+                routeColor='#ff0000'
+                onHideClick={handleChangeRouteVisibility}
+                hidden={routeHidden[0]}
+              />
+            </>
+          }
+          { routeData[1].metadata && <>
+              <DetailsCard 
+                routeMetadata={routeData[1].metadata} 
+                routeNumber={2} 
+                routeColor='green'
+                onHideClick={handleChangeRouteVisibility}
+                hidden={routeHidden[1]}
+              />
+            </>
+          }
+          { routeData[2].metadata && <>
+              <DetailsCard 
+                routeMetadata={routeData[2].metadata} 
+                routeNumber={3} 
+                routeColor='blue'
+                onHideClick={handleChangeRouteVisibility}
+                hidden={routeHidden[2]}
+              />
+            </>
+          }
+        </AdditionalInfoPanel>
     </div>
     </>
   )
