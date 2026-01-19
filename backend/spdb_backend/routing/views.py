@@ -123,36 +123,21 @@ class RouteView(APIView):
             func_end_time = time.perf_counter()
             func_execution_time = func_end_time - func_start_time
 
-            path = {
-                "type": "FeatureCollection",
-                "metadata": {
-                    "total_time_seconds": total_time,
-                    "total_distance_meters": total_dist,
-                    "vehicle_speed": max_speed,
-                    "algorithm": alg_type,
-                    "criterion": criterion,
-                    "algorithm_duration": round(execution_time, 4),
-                    "function_duration": round(func_execution_time, 4),
-                },
-                "features": features,
-            }
-
-            is_duplicate = False
-            for existing_route in response_data:
-                existing_meta = existing_route["metadata"]
-
-                time_match = (
-                    abs(existing_meta["total_time_seconds"] - total_time) < 0.001
-                )
-                dist_match = (
-                    abs(existing_meta["total_distance_meters"] - total_dist) < 0.001
-                )
-                len_match = len(existing_route["features"]) == len(features)
-                if time_match and dist_match and len_match:
-                    is_duplicate = True
-
-            if not is_duplicate:
-                response_data.append(path)
+            response_data.append(
+                {
+                    "type": "FeatureCollection",
+                    "metadata": {
+                        "total_time_seconds": total_time,
+                        "total_distance_meters": total_dist,
+                        "vehicle_speed": max_speed,
+                        "algorithm": alg_type,
+                        "criterion": criterion,
+                        "algorithm_duration": round(execution_time, 4),
+                        "function_duration": round(func_execution_time, 4),
+                    },
+                    "features": features,
+                }
+            )
 
         return Response(response_data)
 
