@@ -5,6 +5,12 @@ from django.db import connection
 import json
 import time
 
+CRITERIA_TRANSLATION = {
+    "time": "Najszybszy czas przejazdu",
+    "distance": "Najkrótsza odległość",
+    "main_roads": "Wygodniejsza trasa",
+}
+
 
 class RouteView(APIView):
     def get(self, request):
@@ -127,17 +133,23 @@ class RouteView(APIView):
                 {
                     "type": "FeatureCollection",
                     "metadata": {
-                        "total_time_seconds": total_time,
-                        "total_distance_meters": total_dist,
+                        "total_time_seconds": round(total_time, 2),
+                        "total_distance_meters": round(total_dist, 2),
                         "vehicle_speed": max_speed,
                         "algorithm": alg_type,
-                        "criterion": criterion,
+                        "criterion": CRITERIA_TRANSLATION[criterion],
                         "algorithm_duration": round(execution_time, 4),
-                        "function_duration": round(func_execution_time, 4),
+                        # "function_duration": round(func_execution_time, 4),
                     },
                     "features": features,
                 }
             )
+
+        func_end_time = time.perf_counter()
+        func_execution_time = func_end_time - func_start_time
+
+        for path in response_data:
+            path["metadata"]["function_duration"] = round(func_execution_time, 4)
 
         return Response(response_data)
 
